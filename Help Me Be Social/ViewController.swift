@@ -15,10 +15,14 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
     var liveFeed: AVCaptureVideoPreviewLayer?
     var cameraSession: AVCaptureSession?
     var captureDevice: AVCaptureDevice?
+    var outputObject: AVCaptureOutput?
     
-    lazy var featureDetector: CIDetector? = CIDetector(ofType: CIDetectorTypeFace, context: nil, options: [CIDetectorAccuracy: CIDetectorAccuracyLow])
+    lazy var lowAccuracyDetector: CIDetector? = CIDetector(ofType: CIDetectorTypeFace, context: nil, options: [CIDetectorAccuracy: CIDetectorAccuracyLow])
+    lazy var highAccuracyDetector: CIDetector? = CIDetector(ofType: CIDetectorTypeFace, context: nil, options: [CIDetectorAccuracy: CIDetectorAccuracyHigh])
     lazy var outputQueue: DispatchQueue = DispatchQueue(label: "helpmebesocial.camera-output")
-    
+    lazy var lowAccuracyQueue: DispatchQueue = DispatchQueue(label: "helpmebesocial.lo-fi-output")
+    lazy var highAccuracyQueue: DispatchQueue = DispatchQueue(label: "helpmebesocial.hi-fi-output")
+
     override func viewDidLoad() {
         super.viewDidLoad()
         initializeVideoPreview()
@@ -44,7 +48,7 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
     func initializeVideoPreview() {
         let session = AVCaptureSession()
         session.beginConfiguration()
-        let discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInWideAngleCamera], mediaType: .video, position: .front)
+        let discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInWideAngleCamera], mediaType: .video, position: .back)
         guard let device = discoverySession.devices.first else {
             print("No recording device")
             return
@@ -62,6 +66,7 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         
         if session.canAddOutput(output) {
             session.addOutput(output)
+            outputObject = output
         }
         
         session.commitConfiguration()
@@ -152,30 +157,48 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
     var frameInterval = 5
     
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        frameIndex = (frameIndex + 1) % frameInterval
-        guard frameIndex == 0 else {
-            return
-        }
         let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer)
         let attachments = CMCopyDictionaryOfAttachments(kCFAllocatorDefault, sampleBuffer, kCMAttachmentMode_ShouldPropagate)
         let ciImage = CIImage(cvImageBuffer: pixelBuffer!, options: attachments as! [String : Any]?)
-        let options: [String : Any] = [CIDetectorImageOrientation: exifOrientation(orientation: UIDevice.current.orientation),
-                                       CIDetectorSmile: true,
-                                       CIDetectorEyeBlink: true]
-        guard let features = featureDetector?.features(in: ciImage, options: options) else {
+        frameIndex = (frameIndex + 1) % frameInterval
+        if frameIndex == 0 {
+            getHighAccuracyFeatures(from: ciImage)
+        }
+        
+        updateWithLowAccuracyFeatures(from: ciImage)
+    }
+    
+    func updateWithLowAccuracyFeatures(from image: CIImage) {
+        let options: [String : Any] = [CIDetectorImageOrientation: self.exifOrientation(orientation: UIDevice.current.orientation)]
+        guard let features = self.lowAccuracyDetector?.features(in: image, options: options) else {
             print("Couldn't get features")
             return
         }
-        update(with: features.flatMap({ $0 as? CIFaceFeature }))
+        self.update(with: features.flatMap({ $0 as? CIFaceFeature }))
+    }
+    
+    func getHighAccuracyFeatures(from image: CIImage) {
+        highAccuracyQueue.async {
+            let options: [String : Any] = [CIDetectorImageOrientation: self.exifOrientation(orientation: UIDevice.current.orientation)]
+            guard let features = self.highAccuracyDetector?.features(in: image, options: options) else {
+                print("Couldn't get high-accuracy features")
+                return
+            }
+            print("Detected \(features.count) faces in high accuracy")
+            // Grab the frames for each face
+            /*for face in currentFaces {
+             let croppedImage = ciImage.cropped(to: face.feature.bounds)
+             }*/
+        }
     }
     
     // MARK: - Handling Faces
     
-    var displayedFaceLayers: [DetectedFace: CALayer] = [:]
+    var displayedFaceLayers: [DetectedFace: FaceOverlayView] = [:]
     var currentFaces: [DetectedFace] = []
     
     func maximumCenterDelta(forFaceWithBounds bounds: CGRect) -> CGPoint {
-        return CGPoint(x: bounds.size.width * 0.3, y: bounds.size.height * 0.3)
+        return CGPoint(x: bounds.size.width * 0.7, y: bounds.size.height * 0.7)
     }
     
     func update(with faces: [CIFaceFeature]) {
@@ -200,18 +223,24 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
             
             if let match = bestMatch {
                 match.feature = face
-                updateLayer(for: match)
+                DispatchQueue.main.async {
+                    self.updateLayer(for: match)
+                }
                 unmatchedFaces.remove(at: bestMatchIndex)
             } else {
                 let newFace = DetectedFace(feature: face)
                 currentFaces.append(newFace)
-                addLayer(for: newFace)
+                DispatchQueue.main.async {
+                    self.addLayer(for: newFace)
+                }
             }
         }
         
         // Remove layers for faces that no longer have a match
         for unmatched in unmatchedFaces {
-            removeLayer(for: unmatched)
+            DispatchQueue.main.async {
+                self.removeLayer(for: unmatched)
+            }
             if let index = currentFaces.index(of: unmatched) {
                 currentFaces.remove(at: index)
             }
@@ -220,34 +249,43 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
     
     // MARK: Highlighting Faces
     
-    var highlightLayerCornerRadius = CGFloat(6.0)
-    
-    func updateLayer(for face: DetectedFace) {
-        guard let layer = displayedFaceLayers[face] as? CAShapeLayer else {
+    func updateLayer(for face: DetectedFace, animated: Bool = true) {
+        guard let layer = displayedFaceLayers[face] else {
             print("No layer for yo face!")
             return
         }
-        let convertedBounds = face.feature.bounds
-        let path = UIBezierPath(roundedRect: CGRect(x: 0.0, y: 0.0, width: convertedBounds.size.width, height: convertedBounds.size.height), byRoundingCorners: UIRectCorner.allCorners, cornerRadii: CGSize(width: highlightLayerCornerRadius, height: highlightLayerCornerRadius))
-        layer.path = path.cgPath
-        layer.position = CGPoint(x: convertedBounds.midX, y: convertedBounds.midY)
+        guard let metadataBounds = outputObject?.metadataOutputRectConverted(fromOutputRect: face.feature.bounds),
+            var convertedBounds = liveFeed?.layerRectConverted(fromMetadataOutputRect: metadataBounds) else {
+                return
+        }
+        if let previewLayer = liveFeed {
+            if UIDevice.current.orientation.isLandscape {
+                convertedBounds.origin.y = previewLayer.frame.size.height - convertedBounds.maxY
+            } else {
+                convertedBounds.origin.x = previewLayer.frame.size.width - convertedBounds.maxX
+            }
+        }
+        if !animated {
+            layer.frame = convertedBounds
+        } else {
+            UIView.animate(withDuration: 0.2, delay: 0.0, options: .beginFromCurrentState, animations: {
+                layer.frame = convertedBounds
+            }, completion: nil)
+        }
     }
     
     func addLayer(for face: DetectedFace) {
-        let layer = CAShapeLayer()
-        layer.strokeColor = UIColor.blue.cgColor
-        layer.lineWidth = 3.0
-        layer.fillColor = UIColor.blue.withAlphaComponent(0.3).cgColor
-        view.layer.addSublayer(layer)
+        let layer = FaceOverlayView(frame: CGRect.zero)
+        view.addSubview(layer)
         displayedFaceLayers[face] = layer
-        updateLayer(for: face)
+        updateLayer(for: face, animated: false)
     }
     
     func removeLayer(for face: DetectedFace) {
         guard let layer = displayedFaceLayers[face] else {
             return
         }
-        layer.removeFromSuperlayer()
+        layer.removeFromSuperview()
         displayedFaceLayers[face] = nil
     }
 }
