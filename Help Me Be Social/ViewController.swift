@@ -10,11 +10,13 @@ import UIKit
 import AVFoundation
 import CoreImage
 
-class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDelegate {
+class ViewController: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
 
+    @IBOutlet var liveFeedView: UIView!
     var liveFeed: AVCaptureVideoPreviewLayer?
     var cameraSession: AVCaptureSession?
     var captureDevice: AVCaptureDevice?
+    var metadataOutput: AVCaptureMetadataOutput?
     
     lazy var featureDetector: CIDetector? = CIDetector(ofType: CIDetectorTypeFace, context: nil, options: [CIDetectorAccuracy: CIDetectorAccuracyLow])
     lazy var outputQueue: DispatchQueue = DispatchQueue(label: "helpmebesocial.camera-output")
@@ -44,7 +46,7 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
     func initializeVideoPreview() {
         let session = AVCaptureSession()
         session.beginConfiguration()
-        let discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInWideAngleCamera], mediaType: .video, position: .front)
+        let discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInWideAngleCamera], mediaType: .video, position: .back)
         guard let device = discoverySession.devices.first else {
             print("No recording device")
             return
@@ -55,23 +57,35 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         }
         session.addInput(input)
         
-        let output = AVCaptureVideoDataOutput()
+        /*let output = AVCaptureVideoDataOutput()
         output.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String : NSNumber(value: kCVPixelFormatType_420YpCbCr8BiPlanarFullRange)]
         output.alwaysDiscardsLateVideoFrames = true
-        output.setSampleBufferDelegate(self, queue: outputQueue)
         
         if session.canAddOutput(output) {
             session.addOutput(output)
-        }
+        }*/
         
+        let faceDetector = AVCaptureMetadataOutput()
+        faceDetector.setMetadataObjectsDelegate(self, queue: outputQueue)
+        
+        if session.canAddOutput(faceDetector) {
+            session.addOutput(faceDetector)
+        }
+        if faceDetector.availableMetadataObjectTypes.contains(.face) {
+            faceDetector.metadataObjectTypes = [.face]
+        } else {
+            print(faceDetector.availableMetadataObjectTypes)
+        }
+
         session.commitConfiguration()
         
         let feedLayer = AVCaptureVideoPreviewLayer(session: session)
-        view.layer.addSublayer(feedLayer)
+        liveFeedView.layer.addSublayer(feedLayer)
         
         captureDevice = device
         liveFeed = feedLayer
         cameraSession = session
+        metadataOutput = faceDetector
     }
     
     private func updateVideoConnection(_ connection: AVCaptureConnection, with orientation: AVCaptureVideoOrientation) {
@@ -151,67 +165,51 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
     var frameIndex: Int = 0
     var frameInterval = 5
     
-    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        frameIndex = (frameIndex + 1) % frameInterval
-        guard frameIndex == 0 else {
-            return
-        }
-        let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer)
-        let attachments = CMCopyDictionaryOfAttachments(kCFAllocatorDefault, sampleBuffer, kCMAttachmentMode_ShouldPropagate)
-        let ciImage = CIImage(cvImageBuffer: pixelBuffer!, options: attachments as! [String : Any]?)
-        let options: [String : Any] = [CIDetectorImageOrientation: exifOrientation(orientation: UIDevice.current.orientation),
-                                       CIDetectorSmile: true,
-                                       CIDetectorEyeBlink: true]
-        guard let features = featureDetector?.features(in: ciImage, options: options) else {
-            print("Couldn't get features")
-            return
-        }
-        update(with: features.flatMap({ $0 as? CIFaceFeature }))
+    func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
+        update(with: metadataObjects.flatMap({ $0 as? AVMetadataFaceObject }))
     }
-    
     // MARK: - Handling Faces
     
-    var displayedFaceLayers: [DetectedFace: CALayer] = [:]
+    var displayedFaceLayers: [DetectedFace: UIView] = [:]
     var currentFaces: [DetectedFace] = []
     
     func maximumCenterDelta(forFaceWithBounds bounds: CGRect) -> CGPoint {
         return CGPoint(x: bounds.size.width * 0.3, y: bounds.size.height * 0.3)
     }
     
-    func update(with faces: [CIFaceFeature]) {
+    func update(with faces: [AVMetadataFaceObject]) {
         // Match the new faces with the old ones
         var unmatchedFaces = [DetectedFace](currentFaces)
         for face in faces {
             var bestMatch: DetectedFace?
             var bestMatchIndex: Int = -1
-            var bestMatchDelta: CGPoint = CGPoint(x: CGFloat.greatestFiniteMagnitude, y: CGFloat.greatestFiniteMagnitude)
-            let maxDelta = maximumCenterDelta(forFaceWithBounds: face.bounds)
-            // Find closest face that is within maxDelta of the current face
             for (i, oldFace) in unmatchedFaces.enumerated() {
-                let delta = CGPoint(x: abs(oldFace.feature.bounds.midX - face.bounds.midX),
-                                    y: abs(oldFace.feature.bounds.midY - face.bounds.midY))
-                if delta.x < maxDelta.x, delta.y < maxDelta.y,
-                    delta.x < bestMatchDelta.x, delta.y < bestMatchDelta.y {
+                if oldFace.faceID == face.faceID {
                     bestMatch = oldFace
                     bestMatchIndex = i
-                    bestMatchDelta = delta
                 }
             }
             
             if let match = bestMatch {
-                match.feature = face
-                updateLayer(for: match)
+                match.metadataObject = face
+                DispatchQueue.main.async {
+                    self.updateLayer(for: match)
+                }
                 unmatchedFaces.remove(at: bestMatchIndex)
             } else {
-                let newFace = DetectedFace(feature: face)
+                let newFace = DetectedFace(object: face)
                 currentFaces.append(newFace)
-                addLayer(for: newFace)
+                DispatchQueue.main.async {
+                    self.addLayer(for: newFace)
+                }
             }
         }
         
         // Remove layers for faces that no longer have a match
         for unmatched in unmatchedFaces {
-            removeLayer(for: unmatched)
+            DispatchQueue.main.async {
+                self.removeLayer(for: unmatched)
+            }
             if let index = currentFaces.index(of: unmatched) {
                 currentFaces.remove(at: index)
             }
@@ -223,23 +221,23 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
     var highlightLayerCornerRadius = CGFloat(6.0)
     
     func updateLayer(for face: DetectedFace) {
-        guard let layer = displayedFaceLayers[face] as? CAShapeLayer else {
+        guard let layer = displayedFaceLayers[face] else {
             print("No layer for yo face!")
             return
         }
-        let convertedBounds = face.feature.bounds
-        let path = UIBezierPath(roundedRect: CGRect(x: 0.0, y: 0.0, width: convertedBounds.size.width, height: convertedBounds.size.height), byRoundingCorners: UIRectCorner.allCorners, cornerRadii: CGSize(width: highlightLayerCornerRadius, height: highlightLayerCornerRadius))
-        layer.path = path.cgPath
-        layer.position = CGPoint(x: convertedBounds.midX, y: convertedBounds.midY)
+        guard let metadataObj = face.metadataObject,
+            let transformed = liveFeed?.transformedMetadataObject(for: metadataObj) else {
+            print("Couldn't transform metadata object")
+            return
+        }
+        let convertedBounds = transformed.bounds
+        layer.frame = convertedBounds.offsetBy(dx: liveFeed?.frame.origin.x ?? 0.0, dy: liveFeed?.frame.origin.y ?? 0.0)
     }
     
     func addLayer(for face: DetectedFace) {
-        let layer = CAShapeLayer()
-        layer.strokeColor = UIColor.blue.cgColor
-        layer.lineWidth = 3.0
-        layer.fillColor = UIColor.blue.withAlphaComponent(0.3).cgColor
-        view.layer.addSublayer(layer)
-        displayedFaceLayers[face] = layer
+        let layerView = FaceOverlayView(frame: CGRect.zero)
+        view.addSubview(layerView)
+        displayedFaceLayers[face] = layerView
         updateLayer(for: face)
     }
     
@@ -247,7 +245,7 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         guard let layer = displayedFaceLayers[face] else {
             return
         }
-        layer.removeFromSuperlayer()
+        layer.removeFromSuperview()
         displayedFaceLayers[face] = nil
     }
 }

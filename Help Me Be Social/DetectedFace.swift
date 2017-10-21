@@ -7,15 +7,24 @@
 //
 
 import UIKit
+import AVFoundation
 
 class DetectedFace: NSObject {
     
-    var feature: CIFaceFeature
+    var faceID: Int = 0
+    var metadataObject: AVMetadataFaceObject? {
+        didSet {
+            self.faceID = metadataObject?.faceID ?? 0
+        }
+    }
     
     // Add properties here from Facebook query
     
-    init(feature: CIFaceFeature) {
-        self.feature = feature
+    init(object: AVMetadataFaceObject) {
+        super.init()
+        defer {
+            self.metadataObject = object
+        }
     }
 
 }
