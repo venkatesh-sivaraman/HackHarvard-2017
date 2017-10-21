@@ -10,12 +10,17 @@ import UIKit
 
 class DetectedFace: NSObject {
     
+    private static var faceIDCount = 0
+    
     var feature: CIFaceFeature
+    var faceID: Int
     
     // Add properties here from Facebook query
     
     init(feature: CIFaceFeature) {
         self.feature = feature
+        self.faceID = DetectedFace.faceIDCount
+        DetectedFace.faceIDCount += 1
     }
 
 }
