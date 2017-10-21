@@ -13,6 +13,7 @@
 		96FCB81A1F9AD0140018AC29 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 96FCB8191F9AD0140018AC29 /* Assets.xcassets */; };
 		96FCB81D1F9AD0140018AC29 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 96FCB81B1F9AD0140018AC29 /* LaunchScreen.storyboard */; };
 		96FCB8281F9AD0140018AC29 /* Help_Me_Be_SocialTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96FCB8271F9AD0140018AC29 /* Help_Me_Be_SocialTests.swift */; };
+		96FCB8331F9ADF670018AC29 /* DetectedFace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96FCB8321F9ADF670018AC29 /* DetectedFace.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -36,6 +37,7 @@
 		96FCB8231F9AD0140018AC29 /* Help Me Be SocialTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Help Me Be SocialTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		96FCB8271F9AD0140018AC29 /* Help_Me_Be_SocialTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Help_Me_Be_SocialTests.swift; sourceTree = "<group>"; };
 		96FCB8291F9AD0140018AC29 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		96FCB8321F9ADF670018AC29 /* DetectedFace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetectedFace.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -79,6 +81,7 @@
 			children = (
 				96FCB8121F9AD0140018AC29 /* AppDelegate.swift */,
 				96FCB8141F9AD0140018AC29 /* ViewController.swift */,
+				96FCB8321F9ADF670018AC29 /* DetectedFace.swift */,
 				96FCB8161F9AD0140018AC29 /* Main.storyboard */,
 				96FCB8191F9AD0140018AC29 /* Assets.xcassets */,
 				96FCB81B1F9AD0140018AC29 /* LaunchScreen.storyboard */,
@@ -199,6 +202,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				96FCB8331F9ADF670018AC29 /* DetectedFace.swift in Sources */,
 				96FCB8151F9AD0140018AC29 /* ViewController.swift in Sources */,
 				96FCB8131F9AD0140018AC29 /* AppDelegate.swift in Sources */,
 			);
