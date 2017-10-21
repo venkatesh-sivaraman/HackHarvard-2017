@@ -10,9 +10,22 @@ import UIKit
 
 class ViewController: UIViewController {
 
+    var camera: NSObject?
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        camera = OpenCVWrapper().newCameraView(withParentView: self.view)
+    }
+    
+    override func viewDidLayoutSubviews() {
+        if let cam = camera {
+            OpenCVWrapper().layoutPreviewLayer(forCamera: cam)
+        }
     }
 
     override func didReceiveMemoryWarning() {

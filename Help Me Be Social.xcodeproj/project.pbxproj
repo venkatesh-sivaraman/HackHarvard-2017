@@ -7,12 +7,17 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		96EDB8DB1F9BD7FA00DA0898 /* opencv2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 96EDB8DA1F9BD7F600DA0898 /* opencv2.framework */; };
+		96FA17AF1F9BD97C0036AE33 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 96FA17AE1F9BD97C0036AE33 /* AVFoundation.framework */; };
+		96FA17B11F9BDA100036AE33 /* AssetsLibrary.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 96FA17B01F9BDA100036AE33 /* AssetsLibrary.framework */; };
+		96FA17B31F9BDA150036AE33 /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 96FA17B21F9BDA150036AE33 /* CoreMedia.framework */; };
 		96FCB8131F9AD0140018AC29 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96FCB8121F9AD0140018AC29 /* AppDelegate.swift */; };
 		96FCB8151F9AD0140018AC29 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96FCB8141F9AD0140018AC29 /* ViewController.swift */; };
 		96FCB8181F9AD0140018AC29 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 96FCB8161F9AD0140018AC29 /* Main.storyboard */; };
 		96FCB81A1F9AD0140018AC29 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 96FCB8191F9AD0140018AC29 /* Assets.xcassets */; };
 		96FCB81D1F9AD0140018AC29 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 96FCB81B1F9AD0140018AC29 /* LaunchScreen.storyboard */; };
 		96FCB8281F9AD0140018AC29 /* Help_Me_Be_SocialTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96FCB8271F9AD0140018AC29 /* Help_Me_Be_SocialTests.swift */; };
+		96FCB83C1F9BCF030018AC29 /* OpenCVWrapper.mm in Sources */ = {isa = PBXBuildFile; fileRef = 96FCB83B1F9BCF030018AC29 /* OpenCVWrapper.mm */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -25,7 +30,24 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		96FCB8411F9BD0D40018AC29 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		96EDB8DA1F9BD7F600DA0898 /* opencv2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = opencv2.framework; sourceTree = "<group>"; };
+		96FA17AE1F9BD97C0036AE33 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
+		96FA17B01F9BDA100036AE33 /* AssetsLibrary.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AssetsLibrary.framework; path = System/Library/Frameworks/AssetsLibrary.framework; sourceTree = SDKROOT; };
+		96FA17B21F9BDA150036AE33 /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = System/Library/Frameworks/CoreMedia.framework; sourceTree = SDKROOT; };
 		96FCB80F1F9AD0140018AC29 /* Help Me Be Social.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Help Me Be Social.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		96FCB8121F9AD0140018AC29 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		96FCB8141F9AD0140018AC29 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -36,6 +58,9 @@
 		96FCB8231F9AD0140018AC29 /* Help Me Be SocialTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Help Me Be SocialTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		96FCB8271F9AD0140018AC29 /* Help_Me_Be_SocialTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Help_Me_Be_SocialTests.swift; sourceTree = "<group>"; };
 		96FCB8291F9AD0140018AC29 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		96FCB8391F9BCF020018AC29 /* Help Me Be Social-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Help Me Be Social-Bridging-Header.h"; sourceTree = "<group>"; };
+		96FCB83A1F9BCF030018AC29 /* OpenCVWrapper.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = OpenCVWrapper.h; sourceTree = "<group>"; };
+		96FCB83B1F9BCF030018AC29 /* OpenCVWrapper.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = OpenCVWrapper.mm; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -43,6 +68,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				96FA17B31F9BDA150036AE33 /* CoreMedia.framework in Frameworks */,
+				96FA17B11F9BDA100036AE33 /* AssetsLibrary.framework in Frameworks */,
+				96FA17AF1F9BD97C0036AE33 /* AVFoundation.framework in Frameworks */,
+				96EDB8DB1F9BD7FA00DA0898 /* opencv2.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -62,6 +91,7 @@
 				96FCB8111F9AD0140018AC29 /* Help Me Be Social */,
 				96FCB8261F9AD0140018AC29 /* Help Me Be SocialTests */,
 				96FCB8101F9AD0140018AC29 /* Products */,
+				96FCB83D1F9BCFDE0018AC29 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -79,10 +109,13 @@
 			children = (
 				96FCB8121F9AD0140018AC29 /* AppDelegate.swift */,
 				96FCB8141F9AD0140018AC29 /* ViewController.swift */,
+				96FCB83A1F9BCF030018AC29 /* OpenCVWrapper.h */,
+				96FCB83B1F9BCF030018AC29 /* OpenCVWrapper.mm */,
 				96FCB8161F9AD0140018AC29 /* Main.storyboard */,
 				96FCB8191F9AD0140018AC29 /* Assets.xcassets */,
 				96FCB81B1F9AD0140018AC29 /* LaunchScreen.storyboard */,
 				96FCB81E1F9AD0140018AC29 /* Info.plist */,
+				96FCB8391F9BCF020018AC29 /* Help Me Be Social-Bridging-Header.h */,
 			);
 			path = "Help Me Be Social";
 			sourceTree = "<group>";
@@ -96,6 +129,17 @@
 			path = "Help Me Be SocialTests";
 			sourceTree = "<group>";
 		};
+		96FCB83D1F9BCFDE0018AC29 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				96FA17B21F9BDA150036AE33 /* CoreMedia.framework */,
+				96FA17B01F9BDA100036AE33 /* AssetsLibrary.framework */,
+				96FA17AE1F9BD97C0036AE33 /* AVFoundation.framework */,
+				96EDB8DA1F9BD7F600DA0898 /* opencv2.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -106,6 +150,7 @@
 				96FCB80B1F9AD0140018AC29 /* Sources */,
 				96FCB80C1F9AD0140018AC29 /* Frameworks */,
 				96FCB80D1F9AD0140018AC29 /* Resources */,
+				96FCB8411F9BD0D40018AC29 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -146,6 +191,7 @@
 				TargetAttributes = {
 					96FCB80E1F9AD0140018AC29 = {
 						CreatedOnToolsVersion = 9.0;
+						LastSwiftMigration = 0900;
 						ProvisioningStyle = Automatic;
 					};
 					96FCB8221F9AD0140018AC29 = {
@@ -201,6 +247,7 @@
 			files = (
 				96FCB8151F9AD0140018AC29 /* ViewController.swift in Sources */,
 				96FCB8131F9AD0140018AC29 /* AppDelegate.swift in Sources */,
+				96FCB83C1F9BCF030018AC29 /* OpenCVWrapper.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -353,12 +400,22 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = PTB6T29SN3;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Help\\ Me\\ Be\\ Social",
+					"$(PROJECT_DIR)/Help\\ Me\\ Be\\ Social",
+					"$(PROJECT_DIR)",
+				);
 				INFOPLIST_FILE = "Help Me Be Social/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				OTHER_CODE_SIGN_FLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.TemporaryName.Help-Me-Be-Social";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "Help Me Be Social/Help Me Be Social-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 4.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -368,12 +425,21 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = PTB6T29SN3;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Help\\ Me\\ Be\\ Social",
+					"$(PROJECT_DIR)/Help\\ Me\\ Be\\ Social",
+					"$(PROJECT_DIR)",
+				);
 				INFOPLIST_FILE = "Help Me Be Social/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				OTHER_CODE_SIGN_FLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.TemporaryName.Help-Me-Be-Social";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "Help Me Be Social/Help Me Be Social-Bridging-Header.h";
 				SWIFT_VERSION = 4.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
