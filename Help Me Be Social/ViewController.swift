@@ -220,7 +220,7 @@ class ViewController: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
     
     var highlightLayerCornerRadius = CGFloat(6.0)
     
-    func updateLayer(for face: DetectedFace) {
+    func updateLayer(for face: DetectedFace, animated: Bool = false) {
         guard let layer = displayedFaceLayers[face] else {
             print("No layer for yo face!")
             return
@@ -231,14 +231,20 @@ class ViewController: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
             return
         }
         let convertedBounds = transformed.bounds
-        layer.frame = convertedBounds.offsetBy(dx: liveFeed?.frame.origin.x ?? 0.0, dy: liveFeed?.frame.origin.y ?? 0.0)
+        if !animated {
+            layer.frame = convertedBounds.offsetBy(dx: liveFeed?.frame.origin.x ?? 0.0, dy: liveFeed?.frame.origin.y ?? 0.0)
+        } else {
+            UIView.animate(withDuration: 0.1, delay: 0.0, options: .beginFromCurrentState, animations: {
+                layer.frame = convertedBounds.offsetBy(dx: self.liveFeed?.frame.origin.x ?? 0.0, dy: self.liveFeed?.frame.origin.y ?? 0.0)
+            }, completion: nil)
+        }
     }
     
     func addLayer(for face: DetectedFace) {
         let layerView = FaceOverlayView(frame: CGRect.zero)
         view.addSubview(layerView)
         displayedFaceLayers[face] = layerView
-        updateLayer(for: face)
+        updateLayer(for: face, animated: false)
     }
     
     func removeLayer(for face: DetectedFace) {
