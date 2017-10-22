@@ -222,6 +222,7 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
                     newObjects.append(newTracked)
                     DispatchQueue.main.async {
                         self.addLayer(for: newTracked, color: UIColor.green)
+                        self.update(object: newTracked, with: "Your Name")
                     }
                 }
             }
@@ -231,7 +232,7 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
             for (i, existingObject) in self.trackedObjects.enumerated() where !processedObjects.contains(existingObject) {
                 let target = existingObject.bounds
                 let newRect = self.cvManager.trackObject(in: target, in: last, nextImage: image)
-                if newRect != CGRect.zero {
+                if newRect.width * newRect.height >= 300.0 {
                     existingObject.bounds = newRect
                     DispatchQueue.main.async {
                         self.displayedObjectLayers[existingObject]?.borderColor = UIColor.green
@@ -253,12 +254,54 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
             //let img = cvManager.addText(to: image)
             //print(img)
             self.lastImage = image
+            //self.coalesceTrackedObjects()
+            
+            DispatchQueue.main.async {
+                self.view.setNeedsLayout()
+                UIView.animate(withDuration: 0.2, delay: 0.0, options: .beginFromCurrentState, animations: {
+                    self.view.layoutIfNeeded()
+                }, completion: nil)
+            }
+        }
+    }
+    
+    func coalesceTrackedObjects() {
+        var objectSets: [[Int]] = []
+        for (i, object) in self.trackedObjects.enumerated() {
+            let area = object.bounds.width * object.bounds.height
+            for (j, otherObject) in self.trackedObjects.enumerated() where otherObject != object {
+                let otherArea = otherObject.bounds.width * otherObject.bounds.height
+                let union = object.bounds.union(otherObject.bounds)
+                if union.width * union.height <= (area + otherArea) * 0.75 {
+                    objectSets.append([i, j])
+                }
+            }
+        }
+        
+        // This is lazy - need to use union-find at some point
+        var objectsToRemove: [Int] = []
+        for set in objectSets {
+            guard let selectedObject = set.first(where: { self.trackedObjects[$0].personName != nil }) ?? set.max(by: { self.trackedObjects[$0].bounds.width * self.trackedObjects[$0].bounds.height < self.trackedObjects[$1].bounds.width * self.trackedObjects[$1].bounds.height }),
+                displayedObjectLayers[self.trackedObjects[selectedObject]] != nil else {
+                continue
+            }
+            for obj in set where obj != selectedObject {
+                DispatchQueue.main.async {
+                    objectsToRemove.append(obj)
+                    self.removeLayer(for: self.trackedObjects[obj])
+                }
+            }
+        }
+        for i in objectsToRemove.sorted().reversed() {
+            self.trackedObjects.remove(at: i)
         }
     }
     
     // MARK: Highlighting Faces
     
+    var displayedObjectConstraints: [TrackedObject: [NSLayoutConstraint]] = [:]
     var displayedObjectLayers: [TrackedObject: ObjectOverlayView] = [:]
+    var displayedObjectLabels: [TrackedObject: NameOverlayView] = [:]
     var trackedObjects: [TrackedObject] = []
     
     func updateLayer(for object: TrackedObject, animated: Bool = true) {
@@ -277,6 +320,15 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
                 convertedBounds.origin.x = previewLayer.frame.size.width - convertedBounds.maxX
             }
         }
+        /*if let oldConstraints = displayedObjectConstraints[object] {
+            NSLayoutConstraint.deactivate(oldConstraints)
+        }
+        let constraints = [layer.leftAnchor.constraint(equalTo: view.leftAnchor, constant: convertedBounds.origin.x),
+                           layer.topAnchor.constraint(equalTo: view.topAnchor, constant: convertedBounds.origin.y),
+                           layer.widthAnchor.constraint(equalToConstant: convertedBounds.size.width),
+                           layer.heightAnchor.constraint(equalToConstant: convertedBounds.size.height)]
+        NSLayoutConstraint.activate(constraints)
+        displayedObjectConstraints[object] = constraints*/
         if !animated {
             layer.frame = convertedBounds
             layer.setNeedsDisplay()
@@ -294,6 +346,7 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
             layer.borderColor = customColor
             layer.fillColor = customColor.withAlphaComponent(0.2)
         }
+        //layer.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(layer)
         displayedObjectLayers[object] = layer
         updateLayer(for: object, animated: false)
@@ -305,6 +358,51 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         }
         layer.removeFromSuperview()
         displayedObjectLayers[object] = nil
+        removeNameLabel(for: object, animated: true)
+    }
+    
+    func updateNameLabel(for object: TrackedObject) {
+        guard let associatedRectangle = displayedObjectLayers[object] else {
+            return
+        }
+        
+        var label: NameOverlayView
+        if let existingLabel = displayedObjectLabels[object] {
+            label = existingLabel
+        } else {
+            label = NameOverlayView(frame: CGRect.zero)
+            view.addSubview(label)
+            label.centerXAnchor.constraint(equalTo: associatedRectangle.centerXAnchor).isActive = true
+            label.topAnchor.constraint(equalTo: associatedRectangle.bottomAnchor, constant: 4.0).isActive = true
+        }
+        label.name = object.personName
+        displayedObjectLabels[object] = label
+    }
+    
+    func removeNameLabel(for object: TrackedObject, animated: Bool = false) {
+        guard let label = displayedObjectLabels[object] else {
+            return
+        }
+        
+        displayedObjectLabels[object] = nil
+        if animated {
+            UIView.animate(withDuration: 0.2, animations: {
+                label.alpha = 0.0
+            }, completion: { (completed) in
+                if completed {
+                    label.removeFromSuperview()
+                }
+            })
+        } else {
+            label.removeFromSuperview()
+        }
+    }
+    
+    // MARK: - Tagging Objects with Names
+    
+    func update(object: TrackedObject, with name: String) {
+        object.personName = name
+        updateNameLabel(for: object)
     }
 }
 
