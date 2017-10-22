@@ -8,6 +8,11 @@
 
 import UIKit
 
+/*
+ Thanks to
+ https://icons8.com/icon/6063/Back
+ */
+
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 

@@ -8,7 +8,13 @@
 
 import UIKit
 
-class ObjectOverlayView: UIView {
+protocol TrackingObjectView {
+    var trackedObject: TrackedObject? { get set }
+}
+
+class ObjectOverlayView: UIView, TrackingObjectView {
+    
+    weak var trackedObject: TrackedObject?
     
     override init(frame: CGRect) {
         super.init(frame: frame)

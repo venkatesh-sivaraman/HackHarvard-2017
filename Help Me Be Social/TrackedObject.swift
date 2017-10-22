@@ -16,6 +16,7 @@ class TrackedObject: NSObject {
     
     // Add properties here from Facebook query
     var personName: String?
+    var facebookID: String? = "100002557936846"
     
     init(bounds: CGRect) {
         self.bounds = bounds

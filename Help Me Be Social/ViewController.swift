@@ -12,8 +12,9 @@ import CoreImage
 
 class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDelegate {
     
-    static let objectTrackingColor = UIColor.green
-    static let faceRecognitionColor = UIColor(red: 84.0/255.0, green: 187.0/255.0, blue: 247.0/255.0, alpha: 1.0)
+    static let objectTrackingColor = UIColor(red: 84.0/255.0, green: 187.0/255.0, blue: 247.0/255.0, alpha: 1.0)
+    static let faceRecognitionColor = UIColor(red: 123.0/255.0, green: 23.0/255.0, blue: 216.0/255.0, alpha: 1.0)
+    static let barColor = UIColor(red: 123.0/255.0, green: 23.0/255.0, blue: 216.0/255.0, alpha: 1.0)
     
     var liveFeed: AVCaptureVideoPreviewLayer?
     var cameraSession: AVCaptureSession?
@@ -36,6 +37,17 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         cameraSession?.startRunning()
+        navigationController?.setNavigationBarHidden(true, animated: true)
+        navigationController?.setToolbarHidden(true, animated: true)
+        navigationController?.navigationBar.barTintColor = ViewController.barColor
+        navigationController?.navigationBar.titleTextAttributes = [.foregroundColor: UIColor.white]
+        navigationController?.toolbar.barTintColor = ViewController.barColor
+        navigationController?.navigationBar.tintColor = UIColor.white
+        navigationController?.toolbar.tintColor = UIColor.white
+    }
+    
+    override var preferredStatusBarStyle: UIStatusBarStyle {
+        return .lightContent
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -161,6 +173,9 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
     var frameIndex: Int = 0
     var frameInterval = 5
     
+    var captureFrameIndex = 0
+    var captureFrameInterval = 40
+    
     var frameSequence: [CIImage] = []
     
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
@@ -176,6 +191,10 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
             frameSequence = [ciImage]
         }
         
+        if captureFrameIndex == captureFrameInterval / 2 {
+            sendFrameToServer(ciImage)
+        }
+        captureFrameIndex = (captureFrameIndex + 1) % captureFrameInterval
         //updateWithLowAccuracyFeatures(from: ciImage)
     }
     
@@ -218,7 +237,7 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
                 for obj in newObjects.subtracting(oldObjects) {
                     // Add these
                     self.addLayer(for: obj, color: lastResult[obj] == true ? ViewController.faceRecognitionColor : ViewController.objectTrackingColor)
-                    self.update(object: obj, with: "Your Name")
+                    //self.update(object: obj, with: "Your Name")
                 }
                 for obj in newObjects.intersection(oldObjects) {
                     guard oldObjects.contains(obj) else {
@@ -366,7 +385,7 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
             layer.alpha = newAlpha
             layer.setNeedsDisplay()
         } else {
-            UIView.animate(withDuration: 0.2, delay: 0.0, options: .beginFromCurrentState, animations: {
+            UIView.animate(withDuration: 0.2, delay: 0.0, options: [.beginFromCurrentState, .allowUserInteraction], animations: {
                 layer.frame = convertedBounds
                 layer.alpha = newAlpha
                 layer.setNeedsDisplay()
@@ -379,10 +398,14 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         let customColor = color ?? ViewController.objectTrackingColor
         layer.borderColor = customColor
         layer.fillColor = customColor.withAlphaComponent(0.2)
+        layer.trackedObject = object
         //layer.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(layer)
         displayedObjectLayers[object] = layer
         updateLayer(for: object, animated: false)
+        
+        let tapper = UITapGestureRecognizer(target: self, action: #selector(ViewController.detectedFaceTapped(_:)))
+        layer.addGestureRecognizer(tapper)
     }
     
     func removeLayer(for object: TrackedObject) {
@@ -409,6 +432,9 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
             label.topAnchor.constraint(equalTo: associatedRectangle.bottomAnchor, constant: 4.0).isActive = true
         }
         label.name = object.personName
+        label.trackedObject = object
+        let tapper = UITapGestureRecognizer(target: self, action: #selector(ViewController.detectedFaceTapped(_:)))
+        label.addGestureRecognizer(tapper)
         displayedObjectLabels[object] = label
     }
     
@@ -419,7 +445,7 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         
         displayedObjectLabels[object] = nil
         if animated {
-            UIView.animate(withDuration: 0.2, animations: {
+            UIView.animate(withDuration: 0.2, delay: 0.0, options: [.beginFromCurrentState, .allowUserInteraction], animations: {
                 label.alpha = 0.0
             }, completion: { (completed) in
                 if completed {
@@ -431,11 +457,159 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         }
     }
     
-    // MARK: - Tagging Objects with Names
+    // MARK: - Server Results
+    
+    struct ServerResult {
+        var bounds: CGRect
+        var name: String?
+        var facebookID: String?
+    }
+    
+    var pendingServerResult: Bool = false
+    var serverPendingLocations: [TrackedObject: CGRect] = [:]
+    
+    func sendFrameToServer(_ ciImage: CIImage) {
+        guard !pendingServerResult else {
+            return
+        }
+        
+        serverPendingLocations = [:]
+        for obj in self.trackedObjects {
+            serverPendingLocations[obj] = obj.bounds
+        }
+        if UIDevice.current.orientation.isPortrait {
+            let size = CGSize(width: ciImage.extent.size.height, height: ciImage.extent.size.width)
+            UIGraphicsBeginImageContext(size)
+            UIImage(ciImage: ciImage, scale: 1.0, orientation: .right).draw(in: CGRect(origin: .zero, size: size))
+        } else {
+            UIGraphicsBeginImageContext(ciImage.extent.size)
+            UIImage(ciImage: ciImage).draw(in: CGRect(origin: .zero, size: ciImage.extent.size))
+        }
+        guard let redraw = UIGraphicsGetImageFromCurrentImageContext() else { return }
+        guard let imageData = UIImageJPEGRepresentation(redraw, 0.3) else {
+            print("Couldn't get image data")
+            UIGraphicsEndImageContext()
+            return
+        }
+        UIGraphicsEndImageContext()
+        guard let url = URL(string: "http://findfriendsdjango.azurewebsites.net/getimg") else {
+            print("No url")
+            return
+        }
+        let headers = [
+            "content-type": "multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW",
+            "cache-control": "no-cache",
+            "postman-token": "c5d85566-dfeb-f93a-2c69-dc0753c3a19b"
+        ]
+        let parameters = [
+            [
+                "name": "file",
+                "fileName": "img.jpg",
+                "content-type": "image/jpeg"
+            ]
+        ]
+        
+        let boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW"
+        
+        var bodyData: Data?
+        var body = ""
+        for param in parameters {
+            let paramName = param["name"]!
+            body += "--\(boundary)\r\n"
+            body += "Content-Disposition:form-data; name=\"\(paramName)\""
+            if let filename = param["fileName"] {
+                let contentType = param["content-type"]!
+                body += "; filename=\"\(filename)\"\r\n"
+                body += "Content-Type: \(contentType)\r\n\r\n"
+                if let newData = body.data(using: .utf8) {
+                    if bodyData != nil {
+                        bodyData?.append(newData)
+                    } else {
+                        bodyData = newData
+                    }
+                    body = ""
+                }
+                bodyData?.append(imageData)
+            } else if let paramValue = param["value"] {
+                body += "\r\n\r\n\(paramValue)"
+            }
+        }
+        if body.characters.count > 0, let newData = body.data(using: .utf8) {
+            if bodyData != nil {
+                bodyData?.append(newData)
+            } else {
+                bodyData = newData
+            }
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        /*request.setValue("multipart/form-data", forHTTPHeaderField: "Content-Type")
+        request.setValue(postLength, forHTTPHeaderField: "Content-Length")*/
+        request.allHTTPHeaderFields = headers
+        request.httpBody = bodyData
+        
+        pendingServerResult = true
+        URLSession.shared.dataTask(with: request, completionHandler: { (repData, response, err) in
+            self.pendingServerResult = false
+            if err == nil, let data = repData {
+                if let jsonInfo = try? JSONSerialization.jsonObject(with: data, options: []) {
+                    if let dict = jsonInfo as? [String: Any] {
+                        print(dict)
+                    }
+                } else {
+                    print("Couldn't read JSON: \(String(data: data, encoding: .utf8) ?? "<no description>")")
+                }
+            } else {
+                print("Error: " + (err?.localizedDescription ?? "none"))
+            }
+        }).resume()
+    }
+    
+    func matchOutputDataToCurrentObjects(_ output: [ServerResult]) {
+        for result in output {
+            let resultCenter = CGPoint(x: result.bounds.midX, y: result.bounds.midY)
+            var closestDistance = CGFloat.greatestFiniteMagnitude
+            var closestObject: TrackedObject?
+            for (previouslyTrackedObject, bounds) in serverPendingLocations {
+                let center = CGPoint(x: bounds.midX, y: bounds.midY)
+                let dist = sqrt(pow(center.x - resultCenter.x, 2.0) + pow(center.y - resultCenter.y, 2.0))
+                if dist < bounds.width * 2.0, dist < closestDistance {
+                    closestObject = previouslyTrackedObject
+                    closestDistance = dist
+                }
+            }
+            if let obj = closestObject, self.trackedObjects.contains(obj) {
+                obj.personName = result.name
+                obj.facebookID = result.facebookID
+            } else {
+                let newTrackingObject = TrackedObject(bounds: result.bounds)
+                newTrackingObject.personName = result.name
+                newTrackingObject.facebookID = result.facebookID
+                self.trackedObjects.append(newTrackingObject)
+                self.addLayer(for: newTrackingObject)
+            }
+        }
+    }
     
     func update(object: TrackedObject, with name: String) {
         object.personName = name
         updateNameLabel(for: object)
+    }
+    
+    // MARK: - Showing Facebook Profile
+    
+    @objc func detectedFaceTapped(_ sender: UITapGestureRecognizer) {
+        guard let trackingObject = (sender.view as? TrackingObjectView)?.trackedObject,
+            let fbID = trackingObject.facebookID else {
+                return
+        }
+        let url = URL(string: "https://www.facebook.com/profile.php?id=\(fbID)")
+        guard let webVC = storyboard?.instantiateViewController(withIdentifier: "WebViewController") as? WebViewController else {
+            return
+        }
+        webVC.url = url
+        navigationController?.pushViewController(webVC, animated: true)
     }
 }
 

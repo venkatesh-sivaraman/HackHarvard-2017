@@ -8,7 +8,7 @@
 
 import UIKit
 
-class NameOverlayView: UIView {
+class NameOverlayView: UIView, TrackingObjectView {
 
     lazy var label: UILabel = {
         let lab = UILabel(frame: self.bounds)
@@ -30,6 +30,8 @@ class NameOverlayView: UIView {
             label.text = name
         }
     }
+    
+    weak var trackedObject: TrackedObject?
     
     override init(frame: CGRect) {
         super.init(frame: frame)
