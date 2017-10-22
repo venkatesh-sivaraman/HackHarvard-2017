@@ -11,6 +11,8 @@
 		96FA17AF1F9BD97C0036AE33 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 96FA17AE1F9BD97C0036AE33 /* AVFoundation.framework */; };
 		96FA17B11F9BDA100036AE33 /* AssetsLibrary.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 96FA17B01F9BDA100036AE33 /* AssetsLibrary.framework */; };
 		96FA17B31F9BDA150036AE33 /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 96FA17B21F9BDA150036AE33 /* CoreMedia.framework */; };
+		96FA17B51F9C0AE20036AE33 /* TrackedObject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96FA17B41F9C0AE20036AE33 /* TrackedObject.swift */; };
+		96FA17B71F9C0B600036AE33 /* ObjectOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96FA17B61F9C0B600036AE33 /* ObjectOverlayView.swift */; };
 		96FCB8131F9AD0140018AC29 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96FCB8121F9AD0140018AC29 /* AppDelegate.swift */; };
 		96FCB8151F9AD0140018AC29 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96FCB8141F9AD0140018AC29 /* ViewController.swift */; };
 		96FCB8181F9AD0140018AC29 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 96FCB8161F9AD0140018AC29 /* Main.storyboard */; };
@@ -48,6 +50,8 @@
 		96FA17AE1F9BD97C0036AE33 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		96FA17B01F9BDA100036AE33 /* AssetsLibrary.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AssetsLibrary.framework; path = System/Library/Frameworks/AssetsLibrary.framework; sourceTree = SDKROOT; };
 		96FA17B21F9BDA150036AE33 /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = System/Library/Frameworks/CoreMedia.framework; sourceTree = SDKROOT; };
+		96FA17B41F9C0AE20036AE33 /* TrackedObject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackedObject.swift; sourceTree = "<group>"; };
+		96FA17B61F9C0B600036AE33 /* ObjectOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObjectOverlayView.swift; sourceTree = "<group>"; };
 		96FCB80F1F9AD0140018AC29 /* Help Me Be Social.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Help Me Be Social.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		96FCB8121F9AD0140018AC29 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		96FCB8141F9AD0140018AC29 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -109,6 +113,8 @@
 			children = (
 				96FCB8121F9AD0140018AC29 /* AppDelegate.swift */,
 				96FCB8141F9AD0140018AC29 /* ViewController.swift */,
+				96FA17B41F9C0AE20036AE33 /* TrackedObject.swift */,
+				96FA17B61F9C0B600036AE33 /* ObjectOverlayView.swift */,
 				96FCB83A1F9BCF030018AC29 /* OpenCVWrapper.h */,
 				96FCB83B1F9BCF030018AC29 /* OpenCVWrapper.mm */,
 				96FCB8161F9AD0140018AC29 /* Main.storyboard */,
@@ -247,7 +253,9 @@
 			files = (
 				96FCB8151F9AD0140018AC29 /* ViewController.swift in Sources */,
 				96FCB8131F9AD0140018AC29 /* AppDelegate.swift in Sources */,
+				96FA17B71F9C0B600036AE33 /* ObjectOverlayView.swift in Sources */,
 				96FCB83C1F9BCF030018AC29 /* OpenCVWrapper.mm in Sources */,
+				96FA17B51F9C0AE20036AE33 /* TrackedObject.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -8,10 +8,11 @@
 
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
+#import <AVFoundation/AVFoundation.h>
 
 @interface OpenCVWrapper : NSObject
 
--(NSObject *)newCameraViewWithParentView:(UIView *)parent;
--(void)layoutPreviewLayerForCamera:(NSObject *)camera;
+-(CIImage *)addTextToImage:(CIImage *)originalImage;
+-(CGRect)trackObjectInRect:(CGRect)bounds inImage:(CIImage *)image1 nextImage:(CIImage *)image2;
 
 @end
