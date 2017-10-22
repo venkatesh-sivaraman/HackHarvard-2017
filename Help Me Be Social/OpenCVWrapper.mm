@@ -121,10 +121,10 @@ using namespace std;
 -(cv::Mat)hsvRepresentationOfMat:(cv::Mat)mat
 {
     cv::Mat bgrROI;
-    cv::cvtColor(mat, bgrROI, cv::COLOR_RGBA2GRAY);
-    //cv::Mat hsvROI;
-    //cv::cvtColor(bgrROI, hsvROI, cv::COLOR_BGR2HSV);
-    return bgrROI;
+    cv::cvtColor(mat, bgrROI, cv::COLOR_RGBA2BGR);
+    cv::Mat hsvROI;
+    cv::cvtColor(bgrROI, hsvROI, cv::COLOR_BGR2HSV);
+    return hsvROI;
 }
 
 -(void)debugCIImageOfMat:(cv::Mat)mat
@@ -151,15 +151,15 @@ using namespace std;
     //[self debugCIImageOfMat:roi];
 
     cv::Mat hsvROI = [self hsvRepresentationOfMat:roi];
-    cv::Mat mask;
-    cv::inRange(hsvROI, cv::Scalar(0, 60, 32), cv::Scalar(180, 255, 255), mask);
+    //cv::Mat mask;
+    //cv::inRange(hsvROI, cv::Scalar(0, 60, 32), cv::Scalar(180, 255, 255), mask);
     
     cv::Mat roiHist;
     const int histSize = 180;
     const int channelIndex = 0;
     float range[] = { 0, 256 };
     const float* histRange = { range };
-    cv::calcHist(&hsvROI, 1, &channelIndex, mask, roiHist, 1, &histSize, &histRange);
+    cv::calcHist(&hsvROI, 1, &channelIndex, cv::Mat(), roiHist, 1, &histSize, &histRange);
     cv::normalize(roiHist, roiHist, 0, 255, cv::NORM_MINMAX);
     
     cv::Mat hsvROI2 = [self hsvRepresentationOfMat:[self cvMatWithImage:image2]];
