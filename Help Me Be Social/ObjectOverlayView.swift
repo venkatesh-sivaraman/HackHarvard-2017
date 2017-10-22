@@ -19,8 +19,8 @@ class ObjectOverlayView: UIView {
         super.init(coder: aDecoder)
     }
     
-    var borderColor = UIColor(red: 84.0/255.0, green: 187.0/255.0, blue: 247.0/255.0, alpha: 1.0)
-    var fillColor = UIColor(red: 84.0/255.0, green: 187.0/255.0, blue: 247.0/255.0, alpha: 1.0).withAlphaComponent(0.3)
+    var borderColor = UIColor.white
+    var fillColor = UIColor.white.withAlphaComponent(0.3)
     
     // Only override draw() if you perform custom drawing.
     // An empty implementation adversely affects performance during animation.

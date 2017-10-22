@@ -12,6 +12,9 @@ import CoreImage
 
 class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDelegate {
     
+    static let objectTrackingColor = UIColor.green
+    static let faceRecognitionColor = UIColor(red: 84.0/255.0, green: 187.0/255.0, blue: 247.0/255.0, alpha: 1.0)
+    
     var liveFeed: AVCaptureVideoPreviewLayer?
     var cameraSession: AVCaptureSession?
     var captureDevice: AVCaptureDevice?
@@ -23,7 +26,7 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
     lazy var highAccuracyDetector: CIDetector? = CIDetector(ofType: CIDetectorTypeFace, context: nil, options: [CIDetectorAccuracy: CIDetectorAccuracyHigh])
     lazy var outputQueue: DispatchQueue = DispatchQueue(label: "helpmebesocial.camera-output")
     lazy var lowAccuracyQueue: DispatchQueue = DispatchQueue(label: "helpmebesocial.lo-fi-output")
-    lazy var highAccuracyQueue: DispatchQueue = DispatchQueue(label: "helpmebesocial.hi-fi-output")
+    lazy var highAccuracyQueue: DispatchQueue = DispatchQueue(label: "helpmebesocial.hi-fi-output", qos: .background, attributes: [], autoreleaseFrequency: .inherit, target: nil)
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -156,22 +159,22 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
     }
     
     var frameIndex: Int = 0
-    var frameInterval = 2
+    var frameInterval = 5
     
-    var lastImage: CIImage?
+    var frameSequence: [CIImage] = []
     
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer)
         let attachments = CMCopyDictionaryOfAttachments(kCFAllocatorDefault, sampleBuffer, kCMAttachmentMode_ShouldPropagate)
         let ciImage = CIImage(cvImageBuffer: pixelBuffer!, options: attachments as! [String : Any]?)
         frameIndex = (frameIndex + 1) % frameInterval
-        if lastImage == nil {
-            lastImage = ciImage
+        if frameIndex <= 1 {
+            frameSequence.append(ciImage)
         }
-        if frameIndex == 0 {
-            trackObjects(in: ciImage)
+        if frameIndex == 1, frameSequence.count > 1 {
+            trackObjects(in: frameSequence)
+            frameSequence = [ciImage]
         }
-        
         
         //updateWithLowAccuracyFeatures(from: ciImage)
     }
@@ -182,90 +185,108 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
             print("Couldn't get high-accuracy features")
             return []
         }
-        print("Detected \(features.count) faces in high accuracy")
         // Grab the frames for each face
         /*for face in currentFaces {
          let croppedImage = ciImage.cropped(to: face.feature.bounds)
          }*/
         return features.flatMap { ($0 as? CIFaceFeature)?.bounds }
     }
+    
+    var currentlyComputing = false
 
-    func trackObjects(in image: CIImage) {
-        guard let last = lastImage else {
+    func trackObjects(in imageSequence: [CIImage]) {
+        guard imageSequence.count >= 2, !currentlyComputing else {
             return
         }
         highAccuracyQueue.async {
-            let targets = self.getLowAccuracyFeatures(from: last)
-            var newObjects: [TrackedObject] = []
-            var processedObjects: [TrackedObject] = []
-            for target in targets {
-                var existing: TrackedObject?
-                for existingObject in self.trackedObjects {
-                    let center = CGPoint(x: existingObject.bounds.midX, y: existingObject.bounds.midY)
-                    if sqrt(pow(center.x - target.midX, 2.0) + pow(center.y - target.midY, 2.0)) < max(existingObject.bounds.size.width * 2.0, existingObject.bounds.size.height * 2.0) {
-                        existing = existingObject
-                        break
-                    }
+            self.currentlyComputing = true
+            var lastFrame: CIImage?
+            let oldObjects = Set<TrackedObject>(self.trackedObjects)
+            var lastResult: [TrackedObject: Bool] = [:]
+            for frame in imageSequence {
+                guard let last = lastFrame else {
+                    lastFrame = frame
+                    continue
                 }
-                if let existingObj = existing {
-                    processedObjects.append(existingObj)
-                    existingObj.bounds = target
-                    DispatchQueue.main.async {
-                        self.displayedObjectLayers[existingObj]?.borderColor = UIColor.blue
-                        self.displayedObjectLayers[existingObj]?.fillColor = UIColor.blue.withAlphaComponent(0.2)
-                        self.updateLayer(for: existingObj)
-                    }
-                } else {
-                    let newRect = self.cvManager.trackObject(in: target, in: last, nextImage: image)
-                    print(target, newRect)
-                    let newTracked = TrackedObject(bounds: newRect)
-                    newObjects.append(newTracked)
-                    DispatchQueue.main.async {
-                        self.addLayer(for: newTracked, color: UIColor.green)
-                        self.update(object: newTracked, with: "Your Name")
-                    }
-                }
+                lastResult = self.updateTrackedObjects(from: last, to: frame)
+                self.trackedObjects = lastResult.keys.filter({ $0.bounds != CGRect.zero })
+                lastFrame = frame
             }
-            
-            var objectsToRemove: [Int] = []
-            print("Out of \(self.trackedObjects.count) objects, \(processedObjects.count) already processed with faces")
-            for (i, existingObject) in self.trackedObjects.enumerated() where !processedObjects.contains(existingObject) {
-                let target = existingObject.bounds
-                let newRect = self.cvManager.trackObject(in: target, in: last, nextImage: image)
-                if newRect.width * newRect.height >= 300.0 {
-                    existingObject.bounds = newRect
-                    DispatchQueue.main.async {
-                        self.displayedObjectLayers[existingObject]?.borderColor = UIColor.green
-                        self.displayedObjectLayers[existingObject]?.fillColor = UIColor.green.withAlphaComponent(0.2)
-                        self.updateLayer(for: existingObject)
-                    }
-                } else {
-                    DispatchQueue.main.async {
-                        self.removeLayer(for: existingObject)
-                    }
-                    objectsToRemove.append(i)
-                }
-            }
-            for i in objectsToRemove.sorted().reversed() {
-                self.trackedObjects.remove(at: i)
-            }
-
-            self.trackedObjects += newObjects
-            //let img = cvManager.addText(to: image)
-            //print(img)
-            self.lastImage = image
-            //self.coalesceTrackedObjects()
-            
+            self.coalesceTrackedObjects(with: lastResult)
             DispatchQueue.main.async {
-                self.view.setNeedsLayout()
-                UIView.animate(withDuration: 0.2, delay: 0.0, options: .beginFromCurrentState, animations: {
-                    self.view.layoutIfNeeded()
-                }, completion: nil)
+                let newObjects = Set<TrackedObject>(self.trackedObjects)
+                for obj in newObjects.subtracting(oldObjects) {
+                    // Add these
+                    self.addLayer(for: obj, color: lastResult[obj] == true ? ViewController.faceRecognitionColor : ViewController.objectTrackingColor)
+                    self.update(object: obj, with: "Your Name")
+                }
+                for obj in newObjects.intersection(oldObjects) {
+                    guard oldObjects.contains(obj) else {
+                        self.removeLayer(for: obj)
+                        continue
+                    }
+                    if let resultDerivation = lastResult[obj] {
+                        if resultDerivation {
+                            // Face detection
+                            self.displayedObjectLayers[obj]?.borderColor = ViewController.faceRecognitionColor
+                            self.displayedObjectLayers[obj]?.fillColor = ViewController.faceRecognitionColor.withAlphaComponent(0.2)
+                        } else {
+                            // Object tracking
+                            self.displayedObjectLayers[obj]?.borderColor = ViewController.objectTrackingColor
+                            self.displayedObjectLayers[obj]?.fillColor = ViewController.objectTrackingColor.withAlphaComponent(0.2)
+                        }
+                    }
+                    self.updateLayer(for: obj)
+                }
+                for obj in oldObjects.subtracting(newObjects) {
+                    // Delete these
+                    self.removeLayer(for: obj)
+                }
             }
+            self.currentlyComputing = false
         }
     }
     
-    func coalesceTrackedObjects() {
+    /// Values in the returned dictionary indicate whether the value was computed by face detection or not.
+    func updateTrackedObjects(from lastImage: CIImage, to image: CIImage) -> [TrackedObject: Bool] {
+        let targets = self.getLowAccuracyFeatures(from: lastImage)
+        var newObjects: [TrackedObject] = []
+        var ret: [TrackedObject: Bool] = [:]
+        for target in targets {
+            var existing: TrackedObject?
+            for existingObject in self.trackedObjects {
+                let center = CGPoint(x: existingObject.bounds.midX, y: existingObject.bounds.midY)
+                if sqrt(pow(center.x - target.midX, 2.0) + pow(center.y - target.midY, 2.0)) < max(existingObject.bounds.size.width * 2.0, existingObject.bounds.size.height * 2.0) {
+                    existing = existingObject
+                    break
+                }
+            }
+            if let existingObj = existing {
+                existingObj.bounds = target
+                ret[existingObj] = true
+            } else {
+                let newRect = self.cvManager.trackObject(in: target, in: lastImage, nextImage: image)
+                print(target, newRect)
+                let newTracked = TrackedObject(bounds: newRect)
+                newObjects.append(newTracked)
+                ret[newTracked] = false
+            }
+        }
+        
+        for existingObject in self.trackedObjects where ret[existingObject] == nil {
+            let target = existingObject.bounds
+            let newRect = self.cvManager.trackObject(in: target, in: lastImage, nextImage: image)
+            if newRect.width * newRect.height >= 300.0 {
+                existingObject.bounds = newRect
+                ret[existingObject] = false
+            } else {
+                existingObject.bounds = newRect
+            }
+        }
+        return ret
+    }
+    
+    func coalesceTrackedObjects(with priorities: [TrackedObject: Bool]) {
         var objectSets: [[Int]] = []
         for (i, object) in self.trackedObjects.enumerated() {
             let area = object.bounds.width * object.bounds.height
@@ -281,7 +302,7 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         // This is lazy - need to use union-find at some point
         var objectsToRemove: [Int] = []
         for set in objectSets {
-            guard let selectedObject = set.first(where: { self.trackedObjects[$0].personName != nil }) ?? set.max(by: { self.trackedObjects[$0].bounds.width * self.trackedObjects[$0].bounds.height < self.trackedObjects[$1].bounds.width * self.trackedObjects[$1].bounds.height }),
+            guard let selectedObject = set.first(where: { priorities[self.trackedObjects[$0]] == true }) ?? set.first(where: { self.trackedObjects[$0].personName != nil }) ?? set.max(by: { self.trackedObjects[$0].bounds.width * self.trackedObjects[$0].bounds.height < self.trackedObjects[$1].bounds.width * self.trackedObjects[$1].bounds.height }),
                 displayedObjectLayers[self.trackedObjects[selectedObject]] != nil else {
                 continue
             }
@@ -329,12 +350,25 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
                            layer.heightAnchor.constraint(equalToConstant: convertedBounds.size.height)]
         NSLayoutConstraint.activate(constraints)
         displayedObjectConstraints[object] = constraints*/
+        // Determine whether this rect is too close to the boundary of the image
+        var newAlpha: CGFloat
+        if layer.alpha < 0.9 {
+            let inset = convertedBounds.insetBy(dx: -25.0, dy: -25.0)
+            let edgeIntersection = inset.intersection(view.bounds)
+            newAlpha = (edgeIntersection.width * edgeIntersection.height >= inset.width * inset.height) ? 1.0 : 0.1
+        } else {
+            let inset = convertedBounds.insetBy(dx: -15.0, dy: -15.0)
+            let edgeIntersection = inset.intersection(view.bounds)
+            newAlpha = (edgeIntersection.width * edgeIntersection.height / (inset.width * inset.height) < 0.9) ? 0.1 : 1.0
+        }
         if !animated {
             layer.frame = convertedBounds
+            layer.alpha = newAlpha
             layer.setNeedsDisplay()
         } else {
             UIView.animate(withDuration: 0.2, delay: 0.0, options: .beginFromCurrentState, animations: {
                 layer.frame = convertedBounds
+                layer.alpha = newAlpha
                 layer.setNeedsDisplay()
             }, completion: nil)
         }
@@ -342,10 +376,9 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
     
     func addLayer(for object: TrackedObject, color: UIColor? = nil) {
         let layer = ObjectOverlayView(frame: CGRect.zero)
-        if let customColor = color {
-            layer.borderColor = customColor
-            layer.fillColor = customColor.withAlphaComponent(0.2)
-        }
+        let customColor = color ?? ViewController.objectTrackingColor
+        layer.borderColor = customColor
+        layer.fillColor = customColor.withAlphaComponent(0.2)
         //layer.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(layer)
         displayedObjectLayers[object] = layer
