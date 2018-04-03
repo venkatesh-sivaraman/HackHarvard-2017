@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="13196" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="BYZ-38-t0r">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="13196" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="YuQ-0f-gxX">
     <device id="retina4_7" orientation="portrait">
         <adaptation id="fullscreen"/>
     </device>
@@ -9,6 +9,22 @@
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
+        <!--Navigation Controller-->
+        <scene sceneID="ykg-gr-3o1">
+            <objects>
+                <navigationController navigationBarHidden="YES" id="YuQ-0f-gxX" sceneMemberID="viewController">
+                    <navigationBar key="navigationBar" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" id="7pj-rk-Bel">
+                        <autoresizingMask key="autoresizingMask"/>
+                        <color key="barTintColor" red="0.47346164940000002" green="0.23432405340000001" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                    </navigationBar>
+                    <connections>
+                        <segue destination="BYZ-38-t0r" kind="relationship" relationship="rootViewController" id="lKX-L1-UCp"/>
+                    </connections>
+                </navigationController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="hzr-VR-VR4" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="-696" y="208"/>
+        </scene>
         <!--View Controller-->
         <scene sceneID="tne-QT-ifu">
             <objects>
@@ -31,13 +47,72 @@
                         </constraints>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                     </view>
-                    <connections>
-                        <outlet property="liveFeedView" destination="uvD-7S-DUG" id="IvU-rD-khN"/>
-                    </connections>
+                    <navigationItem key="navigationItem" id="qbD-fY-FoZ"/>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
             </objects>
             <point key="canvasLocation" x="136.80000000000001" y="90.404797601199405"/>
         </scene>
+        <!--Web View Controller-->
+        <scene sceneID="Ody-IB-gIL">
+            <objects>
+                <viewController storyboardIdentifier="WebViewController" id="QEb-vq-fi9" customClass="WebViewController" customModule="Help_Me_Be_Social" customModuleProvider="target" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="abB-35-rNT">
+                        <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <webView contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="MZC-km-TEX">
+                                <rect key="frame" x="0.0" y="64" width="375" height="559"/>
+                                <color key="backgroundColor" red="0.36078431370000003" green="0.38823529410000002" blue="0.4039215686" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                <connections>
+                                    <outlet property="delegate" destination="QEb-vq-fi9" id="xrZ-Np-oMz"/>
+                                </connections>
+                            </webView>
+                        </subviews>
+                        <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                        <constraints>
+                            <constraint firstItem="Vhx-3v-RIk" firstAttribute="trailing" secondItem="MZC-km-TEX" secondAttribute="trailing" id="Euv-CU-iSo"/>
+                            <constraint firstItem="MZC-km-TEX" firstAttribute="leading" secondItem="Vhx-3v-RIk" secondAttribute="leading" id="MIB-Ns-dVB"/>
+                            <constraint firstItem="Vhx-3v-RIk" firstAttribute="bottom" secondItem="MZC-km-TEX" secondAttribute="bottom" id="Z0K-Le-ZyU"/>
+                            <constraint firstItem="MZC-km-TEX" firstAttribute="top" secondItem="Vhx-3v-RIk" secondAttribute="top" id="qON-2M-SNk"/>
+                        </constraints>
+                        <viewLayoutGuide key="safeArea" id="Vhx-3v-RIk"/>
+                    </view>
+                    <toolbarItems>
+                        <barButtonItem image="back" id="y1O-nv-lyD">
+                            <connections>
+                                <action selector="backButtonPressed:" destination="QEb-vq-fi9" id="Ewt-pG-QUB"/>
+                            </connections>
+                        </barButtonItem>
+                        <barButtonItem title="Item" image="forward" id="CIa-UD-KkJ">
+                            <connections>
+                                <action selector="forwardButtonPressed:" destination="QEb-vq-fi9" id="FcS-5a-p5N"/>
+                            </connections>
+                        </barButtonItem>
+                        <barButtonItem style="plain" systemItem="flexibleSpace" id="hwU-bO-4xA"/>
+                        <barButtonItem id="09K-2p-Yen"/>
+                        <barButtonItem style="plain" systemItem="flexibleSpace" id="4qr-1q-5lS"/>
+                        <barButtonItem title="Item" image="reload" id="UXH-2U-sVb">
+                            <connections>
+                                <action selector="reloadButtonPressed:" destination="QEb-vq-fi9" id="kDv-rh-QTX"/>
+                            </connections>
+                        </barButtonItem>
+                    </toolbarItems>
+                    <simulatedNavigationBarMetrics key="simulatedTopBarMetrics" prompted="NO"/>
+                    <simulatedToolbarMetrics key="simulatedBottomBarMetrics"/>
+                    <connections>
+                        <outlet property="activityIndicatorItem" destination="09K-2p-Yen" id="jBG-sA-uc9"/>
+                        <outlet property="webView" destination="MZC-km-TEX" id="Hyf-fv-L2r"/>
+                    </connections>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="yUR-OL-ncA" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="871.20000000000005" y="241.52923538230885"/>
+        </scene>
     </scenes>
+    <resources>
+        <image name="back" width="26" height="26"/>
+        <image name="forward" width="26" height="26"/>
+        <image name="reload" width="26" height="26"/>
+    </resources>
 </document>
