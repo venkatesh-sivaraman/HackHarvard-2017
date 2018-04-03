@@ -208,7 +208,7 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         /*for face in currentFaces {
          let croppedImage = ciImage.cropped(to: face.feature.bounds)
          }*/
-        return features.flatMap { ($0 as? CIFaceFeature)?.bounds }
+        return features.compactMap { ($0 as? CIFaceFeature)?.bounds }
     }
     
     var currentlyComputing = false
@@ -492,78 +492,29 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
             return
         }
         UIGraphicsEndImageContext()
-        guard let url = URL(string: "http://findfriendsdjango.azurewebsites.net/getimg") else {
-            print("No url")
-            return
-        }
-        let headers = [
-            "content-type": "multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW",
-            "cache-control": "no-cache",
-            "postman-token": "c5d85566-dfeb-f93a-2c69-dc0753c3a19b"
-        ]
-        let parameters = [
-            [
-                "name": "file",
-                "fileName": "img.jpg",
-                "content-type": "image/jpeg"
-            ]
-        ]
-        
-        let boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW"
-        
-        var bodyData: Data?
-        var body = ""
-        for param in parameters {
-            let paramName = param["name"]!
-            body += "--\(boundary)\r\n"
-            body += "Content-Disposition:form-data; name=\"\(paramName)\""
-            if let filename = param["fileName"] {
-                let contentType = param["content-type"]!
-                body += "; filename=\"\(filename)\"\r\n"
-                body += "Content-Type: \(contentType)\r\n\r\n"
-                if let newData = body.data(using: .utf8) {
-                    if bodyData != nil {
-                        bodyData?.append(newData)
-                    } else {
-                        bodyData = newData
-                    }
-                    body = ""
-                }
-                bodyData?.append(imageData)
-            } else if let paramValue = param["value"] {
-                body += "\r\n\r\n\(paramValue)"
-            }
-        }
-        if body.characters.count > 0, let newData = body.data(using: .utf8) {
-            if bodyData != nil {
-                bodyData?.append(newData)
-            } else {
-                bodyData = newData
-            }
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        /*request.setValue("multipart/form-data", forHTTPHeaderField: "Content-Type")
-        request.setValue(postLength, forHTTPHeaderField: "Content-Length")*/
-        request.allHTTPHeaderFields = headers
-        request.httpBody = bodyData
+        let serializer = AFHTTPResponseSerializer()
+        serializer.acceptableContentTypes = serializer.acceptableContentTypes?.union(Set<String>(["text/html"]))
+        let request = AFHTTPRequestSerializer().multipartFormRequest(withMethod: "POST", urlString: "http://findfriendsdjango3.azurewebsites.net/getimg", parameters: ["Content-Type": "multipart/form-data"], constructingBodyWith: { (formData) in
+            formData.appendPart(withFileData: imageData, name: "file", fileName: "img.jpg", mimeType: "image/jpeg")
+        }, error: nil)
         
         pendingServerResult = true
-        URLSession.shared.dataTask(with: request, completionHandler: { (repData, response, err) in
+        let manager = AFURLSessionManager(sessionConfiguration: URLSessionConfiguration.default)
+        manager.responseSerializer = serializer
+        let upload = manager.uploadTask(withStreamedRequest: request as URLRequest, progress: { (uploadProgress) in
+            print(uploadProgress)
+        }) { (response, responseObject, err) in
             self.pendingServerResult = false
-            if err == nil, let data = repData {
-                if let jsonInfo = try? JSONSerialization.jsonObject(with: data, options: []) {
-                    if let dict = jsonInfo as? [String: Any] {
-                        print(dict)
-                    }
-                } else {
-                    print("Couldn't read JSON: \(String(data: data, encoding: .utf8) ?? "<no description>")")
+            if err == nil {
+                if let data = responseObject as? Data,
+                    let json = try? JSONSerialization.jsonObject(with: data, options: []) {
+                    print(json)
                 }
             } else {
                 print("Error: " + (err?.localizedDescription ?? "none"))
             }
-        }).resume()
+        }
+        upload.resume()
     }
     
     func matchOutputDataToCurrentObjects(_ output: [ServerResult]) {
